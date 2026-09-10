@@ -15,19 +15,28 @@
   "name": "FocusKeeper",
   "description": "Replaces your new tab page with a simple React page.",
   "icons": {
-    "16": "images/icon.png",
+    "16": "images/logo.png",
     "32": "images/icon.png",
     "48": "images/icon.png",
     "64": "images/icon.png",
     "128": "images/icon.png"
   },
+
+  "permissions":[
+	  "sidePanel"
+  ],
+
   "background": {
     "chromium:service_worker": "background.js",
     "firefox:scripts": [
       "background.js"
     ]
   },
-  "chrome_url_overrides": {
-    "newtab": "newtab/index.html"
+
+  "side_panel":{
+	"default_path":"sidePanel/index.html"
   }
+
+
+  
 }
