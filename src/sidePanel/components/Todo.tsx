@@ -19,6 +19,7 @@ const Todo = () => {
 		inputRef.current?.focus();
 	}, []);
 
+	// function to add tas
 	const addTask = (): void => {
 		const trimmed = inputValue.trim();
 		if (!trimmed) return;
@@ -34,6 +35,7 @@ const Todo = () => {
 		setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
 	};
 
+	// function to remove task
 	const removeTask = (id: number): void => {
 		setRemovingIds((prev) => new Set(prev).add(id));
 		window.setTimeout(() => {
