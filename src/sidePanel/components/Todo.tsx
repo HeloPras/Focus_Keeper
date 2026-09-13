@@ -52,7 +52,10 @@ const Todo = () => {
 		if (e.key === "Enter") addTask();
 	};
 
+	// remaining tasks
 	const remaining = tasks.filter((t) => !t.completed).length;
+
+	// to calculate new day
 	const today = new Date().toLocaleDateString(undefined, {
 		weekday: "long",
 		month: "long",
