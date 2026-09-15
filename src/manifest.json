@@ -28,9 +28,9 @@
   ],
 
   "background": {
-    "chromium:service_worker": "background.js",
+    "chromium:service_worker": "background.ts",
     "firefox:scripts": [
-      "background.js"
+      "background.ts"
     ]
   },
 
