@@ -1,3 +1,5 @@
+//still type error
+//
 /// <reference types="chrome" />
 
 interface Session {
