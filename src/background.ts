@@ -102,6 +102,7 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
 
 // --- Idle detection (AFK) ---
 chrome.idle.setDetectionInterval(IDLE_THRESHOLD_SECONDS);
+
 chrome.idle.onStateChanged.addListener((state) => {
   if (state === "active") {
     userIdle = false;

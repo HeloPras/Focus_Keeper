@@ -23,8 +23,13 @@
     "128": "images/icon.png"
   },
 
-  "permissions":[
-	  "sidePanel"
+  "permissions":[ "sidePanel",
+	  "tabs",
+	  "webNavigation",
+	  "windows",
+	  "idle",
+	  "runtime"
+
   ],
 
   "background": {
