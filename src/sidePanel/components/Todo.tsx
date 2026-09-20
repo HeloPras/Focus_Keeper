@@ -7,23 +7,77 @@ interface Task {
 	entering?: boolean;
 }
 
-let idCounter = 1;
+// Shape actually persisted to chrome.storage.local — no transient UI flags.
+interface StoredTask {
+	id: number;
+	text: string;
+	completed: boolean;
+}
+
+const STORAGE_KEY = "todos";
 
 const Todo = () => {
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [inputValue, setInputValue] = useState<string>("");
 	const [removingIds, setRemovingIds] = useState<Set<number>>(() => new Set());
+	const [loaded, setLoaded] = useState(false); // gate saving until initial load completes
 	const inputRef = useRef<HTMLInputElement>(null);
+	const idCounterRef = useRef<number>(1);
 
+	// --- Load existing todos from chrome.storage.local on mount ---
 	useEffect(() => {
 		inputRef.current?.focus();
+
+		chrome.storage.local.get(STORAGE_KEY, (result) => {
+			const stored = (result[STORAGE_KEY] as StoredTask[] | undefined) || [];
+			setTasks(stored.map((t) => ({ ...t, entering: false })));
+			idCounterRef.current =
+				stored.length > 0 ? Math.max(...stored.map((t) => t.id)) + 1 : 1;
+			setLoaded(true);
+		});
+
+		// Keep in sync if todos change elsewhere (e.g. another popup instance,
+		// or the background script clearing/resetting them).
+		const handleStorageChange = (
+			changes: { [key: string]: chrome.storage.StorageChange },
+			areaName: string
+		) => {
+			if (areaName === "local" && changes[STORAGE_KEY]) {
+				const newStored = (changes[STORAGE_KEY].newValue as StoredTask[] | undefined) || [];
+				setTasks((prev) => {
+					// preserve any in-flight "entering" animation state where possible
+					return newStored.map((t) => {
+						const existing = prev.find((p) => p.id === t.id);
+						return { ...t, entering: existing?.entering ?? false };
+					});
+				});
+			}
+		};
+		chrome.storage.onChanged.addListener(handleStorageChange);
+		return () => chrome.storage.onChanged.removeListener(handleStorageChange);
 	}, []);
+
+	// --- Persist to chrome.storage.local whenever tasks change ---
+	useEffect(() => {
+		if (!loaded) return; // don't overwrite storage with [] before initial load finishes
+		const toStore: StoredTask[] = tasks.map(({ id, text, completed }) => ({
+			id,
+			text,
+			completed,
+		}));
+		chrome.storage.local.set({ [STORAGE_KEY]: toStore });
+	}, [tasks, loaded]);
 
 	// function to add tas
 	const addTask = (): void => {
 		const trimmed = inputValue.trim();
 		if (!trimmed) return;
-		const newTask: Task = { id: idCounter++, text: trimmed, completed: false, entering: true };
+		const newTask: Task = {
+			id: idCounterRef.current++,
+			text: trimmed,
+			completed: false,
+			entering: true,
+		};
 		setTasks((prev) => [...prev, newTask]);
 		setInputValue("");
 		window.setTimeout(() => {

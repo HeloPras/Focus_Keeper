@@ -28,7 +28,9 @@
 	  "webNavigation",
 	  "windows",
 	  "idle",
-	  "runtime"
+	  "runtime",
+	  "notifications",
+	  "storage"
 
   ],
 

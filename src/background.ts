@@ -14,9 +14,111 @@ type TimeLog = Record<string, number>;
 let currentSession: Session | null = null;
 let windowFocused = true;
 let userIdle = false;
+let hasPendingTodos = true;
 
 const LOG_INTERVAL_MS = 5000;
 const IDLE_THRESHOLD_SECONDS = 30; // chrome.idle minimum is 15s
+
+// --- Category configuration ---
+// Map domains to categories. Extend this as needed, or load from storage
+// so users can customize it via an options page.
+const DOMAIN_CATEGORY_MAP: Record<string, string> = {
+  "youtube.com": "entertainment",
+  "netflix.com": "entertainment",
+  "twitch.tv": "entertainment",
+  "reddit.com": "entertainment",
+  "instagram.com": "entertainment",
+  "tiktok.com": "entertainment",
+  "facebook.com": "social",
+  "twitter.com": "social",
+  "x.com": "social",
+  "linkedin.com": "social",
+  "github.com": "work",
+  "stackoverflow.com": "work",
+  "docs.google.com": "work",
+  "notion.so": "work",
+};
+
+// --- To-do list gating ---
+// Assumes chrome.storage.local has a "todos" key: an array of
+// { id, text, completed: boolean } objects. Adjust the field names
+// below if your existing to-do list uses a different shape/key.
+interface TodoItem {
+  id: string | number;
+  text: string;
+  completed: boolean;
+}
+
+async function refreshTodoState(): Promise<void> {
+  const { todos = [] } = await chrome.storage.local.get("todos");
+  console.log(todos);
+  const wasPending = hasPendingTodos;
+  hasPendingTodos = (todos as TodoItem[]).some((t) => !t.completed);
+
+  // If todos just became fully complete while a session was running, flush and pause.
+  if (wasPending && !hasPendingTodos) {
+    logChunk();
+  }
+  // If todos just went from none-pending to pending again, resume tracking cleanly.
+  if (!wasPending && hasPendingTodos && currentSession) {
+    currentSession.startTime = Date.now();
+    currentSession.accumulatedMs = 0;
+  }
+}
+
+// React immediately whenever the to-do list changes (checked/unchecked/added/removed)
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.todos) {
+    refreshTodoState();
+  }
+});
+
+// Per-category alert thresholds (in ms). Only categories listed here get popups.
+const CATEGORY_THRESHOLDS_MS: Record<string, number> = {
+  entertainment: 15 * 60 * 1000, // 15 min
+};
+
+// Tracks accumulated time per category since last reset/alert
+const categoryTimers: Record<string, number> = {};
+// Tracks whether we've already alerted for a category in its current "run"
+const alertedCategories: Set<string> = new Set();
+
+function getDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function getCategory(domain: string): string {
+  return DOMAIN_CATEGORY_MAP[domain] || "uncategorized";
+}
+
+// --- Notification popup ---
+function showThresholdPopup(category: string, ms: number) {
+  chrome.notifications.create(`threshold-${category}-${Date.now()}`, {
+    type: "basic",
+    iconUrl: "icon128.png", // replace with your extension's icon path
+    title: "Time check",
+    message: `You've spent ${Math.round(ms / 60000)} min on ${category} sites.`,
+    priority: 2,
+  });
+}
+
+function checkCategoryThreshold(category: string) {
+  const threshold = CATEGORY_THRESHOLDS_MS[category];
+  if (!threshold) return; // no alerting configured for this category
+
+  const total = categoryTimers[category] || 0;
+
+  if (total >= threshold && !alertedCategories.has(category)) {
+    showThresholdPopup(category, total);
+    alertedCategories.add(category);
+    // Optional: reset the timer so the next alert fires after another 15 min
+    // categoryTimers[category] = 0;
+  }
+}
 
 // Only "attentive" when window is focused AND user isn't idle
 function isAttentive(): boolean {
@@ -50,6 +152,7 @@ async function saveTimeChunk(url: string, ms: number) {
 
 function endSession() {
   if (currentSession) {
+    console.log("Session Ended Chunk load");
     logChunk(); // flush any remaining un-logged time
   }
   currentSession = null;
@@ -90,6 +193,7 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
     windowFocused = false;
+    console.log("Window Focus changed Chunk logged");
     logChunk(); // flush before pausing
   } else {
     windowFocused = true;
@@ -114,6 +218,7 @@ chrome.idle.onStateChanged.addListener((state) => {
     }
   } else {
     // "idle" or "locked"
+    console.log("State Changed Chunk Logged:");
     logChunk(); // flush before pausing
     userIdle = true;
   }
@@ -133,6 +238,21 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // wake-ups. This interval works while the worker is alive (e.g. during an
 // active session with recent tab/nav activity keeping it awake).
 setInterval(logChunk, LOG_INTERVAL_MS);
+
+// --- Reset category timers at midnight (optional daily reset) ---
+function scheduleMidnightReset() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const msUntilMidnight = midnight.getTime() - now.getTime();
+
+  setTimeout(() => {
+    for (const key in categoryTimers) categoryTimers[key] = 0;
+    alertedCategories.clear();
+    scheduleMidnightReset(); // reschedule for next day
+  }, msUntilMidnight);
+}
+scheduleMidnightReset();
 
 // Initialize on service worker startup (e.g. browser restart, worker respawn)
 chrome.runtime.onStartup.addListener(async () => {
