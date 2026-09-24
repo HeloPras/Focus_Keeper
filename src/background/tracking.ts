@@ -37,7 +37,7 @@ export function getCurrentSession(): Session | null {
   return currentSession;
 }
 
-export function logChunk() {
+export async function logChunk() {
   if (!currentSession || !isAttentive()) {
     return;
   }
@@ -62,17 +62,17 @@ export function logChunk() {
   saveTimeChunk(currentSession.url, elapsed);
 
   // Save category time
-  const category = getCategoryFromUrl(currentSession.url);
+  const category = await getCategoryFromUrl(currentSession.url);
 
   addCategoryTime(category, elapsed);
   checkCategoryThreshold(category);
 }
 
-function getCategoryFromUrl(url: string): string {
+async function getCategoryFromUrl(url: string): Promise<string> {
   try {
     const hostname = new URL(url).hostname.replace(/^www\./, "");
 
-    return getCategory(hostname);
+    return await getCategory(hostname);
   } catch {
     return "uncategorized";
   }

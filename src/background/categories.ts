@@ -1,5 +1,9 @@
 /// <reference types="chrome" />
 
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({});
+
 const DOMAIN_CATEGORY_MAP: Record<string, string> = {
   "youtube.com": "entertainment",
   "netflix.com": "entertainment",
@@ -20,6 +24,15 @@ const DOMAIN_CATEGORY_MAP: Record<string, string> = {
   "notion.so": "work",
 };
 
+const Media_Category = [
+  "productivity",
+  "entertainment",
+  "social",
+  "information",
+  "shopping",
+  "other",
+];
+
 const CATEGORY_THRESHOLDS_MS: Record<string, number> = {
   entertainment: 15 * 60 * 1000,
 };
@@ -28,8 +41,13 @@ const categoryTimers: Record<string, number> = {};
 
 const alertedCategories = new Set<string>();
 
-export function getCategory(domain: string): string {
+export async function getCategory(domain: string): Promise<string> {
   return DOMAIN_CATEGORY_MAP[domain] || "uncategorized";
+
+  const interaction = await ai.interactions.create({
+    model: "gemini-3.8-flash",
+    input: "Explain how AI works in a few words",
+  });
 }
 
 export function addCategoryTime(category: string, ms: number) {
