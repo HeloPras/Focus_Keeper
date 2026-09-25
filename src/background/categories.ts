@@ -2,7 +2,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({});
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const DOMAIN_CATEGORY_MAP: Record<string, string> = {
   "youtube.com": "entertainment",
@@ -42,12 +42,60 @@ const categoryTimers: Record<string, number> = {};
 const alertedCategories = new Set<string>();
 
 export async function getCategory(domain: string): Promise<string> {
-  return DOMAIN_CATEGORY_MAP[domain] || "uncategorized";
+  // return DOMAIN_CATEGORY_MAP[domain] || "uncategorized";
 
   const interaction = await ai.interactions.create({
     model: "gemini-3.8-flash",
-    input: "Explain how AI works in a few words",
+    system_instruction: `
+
+You are a website categorization system.
+
+Your task is to categorize a website based on the URL provided as input.
+
+You MUST return exactly ONE of the following categories:
+
+* productivity
+* entertainment
+* social
+* information
+* shopping
+* other
+
+Rules:
+
+1. Analyze the domain and URL to determine the website's primary purpose.
+2. Return only the category name.
+3. Use lowercase.
+4. Do not return explanations, punctuation, JSON, markdown, or additional text.
+5. If the website does not clearly fit any category, return "other".
+6. Choose the category based on the website's primary purpose, not a specific page or URL path.
+
+Category definitions:
+
+* productivity: Work, coding, development, project management, office tools, education, learning, research, writing, and other productivity-focused websites.
+* entertainment: Video streaming, music, movies, TV, gaming, memes, and other entertainment-focused websites.
+* social: Social media, forums, communities, messaging, and other platforms primarily focused on social interaction.
+* information: News, search engines, reference sites, encyclopedias, blogs, documentation, and websites primarily intended for obtaining information.
+* shopping: E-commerce, online stores, marketplaces, food delivery, travel booking, and websites primarily focused on purchasing products or services.
+* other: Websites that do not clearly belong to any of the categories above.
+
+Output ONLY one of these exact strings:
+
+"productivity"
+"entertainment"
+"social"
+"information"
+"shopping"
+"other"
+	`,
+    input: domain,
   });
+
+  if (!interaction.output_text) {
+    return "uncategorized";
+  }
+
+  return interaction.output_text;
 }
 
 export function addCategoryTime(category: string, ms: number) {
