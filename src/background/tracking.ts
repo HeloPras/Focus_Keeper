@@ -42,6 +42,8 @@ export async function logChunk() {
     return;
   }
 
+  console.log(import.meta.env.EXTENSION_PUBLIC_GEMINI_API_KEY);
+
   const now = Date.now();
 
   const elapsed = now - currentSession.startTime - currentSession.accumulatedMs;
@@ -63,6 +65,7 @@ export async function logChunk() {
 
   // Save category time
   const category = await getCategoryFromUrl(currentSession.url);
+  console.log("logged from category logging", category);
 
   addCategoryTime(category, elapsed);
   checkCategoryThreshold(category);
