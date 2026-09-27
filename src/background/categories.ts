@@ -46,9 +46,10 @@ const alertedCategories = new Set<string>();
 export async function getCategory(domain: string): Promise<string> {
   // return DOMAIN_CATEGORY_MAP[domain] || "uncategorized";
 
-  const interaction = await ai.interactions.create({
-    model: "gemini-3.8-flash",
-    system_instruction: `
+  try {
+    const interaction = await ai.interactions.create({
+      model: "gemini-2.5-flash",
+      system_instruction: `
 
  You are a website categorization system.
 
@@ -96,14 +97,18 @@ https://mail.google.com/mail/u/0/#inbox → productivity
 https://www.reddit.com/r/programming/comments/xyz123/ → social
 https://bit.ly/3xK9zQp → other
   	`,
-    input: domain,
-  });
+      input: domain,
+    });
 
-  if (!interaction.output_text) {
+    if (!interaction.output_text) {
+      throw Error("Ran into issues");
+    }
+
+    return interaction.output_text;
+  } catch (error) {
+    console.log(error);
     return "uncategorized";
   }
-
-  return interaction.output_text;
 }
 
 export function addCategoryTime(category: string, ms: number) {

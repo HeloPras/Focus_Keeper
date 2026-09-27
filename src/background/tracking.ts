@@ -12,6 +12,7 @@ export interface Session {
   url: string;
   startTime: number;
   accumulatedMs: number;
+  limitReached: boolean;
 }
 
 let currentSession: Session | null = null;
@@ -41,8 +42,6 @@ export async function logChunk() {
   if (!currentSession || !isAttentive()) {
     return;
   }
-
-  console.log(import.meta.env.EXTENSION_PUBLIC_GEMINI_API_KEY);
 
   const now = Date.now();
 
@@ -103,6 +102,7 @@ export function startSession(tabId: number, url: string | undefined) {
     url,
     startTime: Date.now(),
     accumulatedMs: 0,
+    limitReached: false,
   };
 
   console.log("Session started:", url);
