@@ -80,11 +80,11 @@ async function getCategoryFromUrl(url: string): Promise<string> {
   }
 }
 
-export function endSession() {
+export async function endSession() {
   if (currentSession) {
     console.log("Session ended — flushing remaining time");
 
-    logChunk();
+    await logChunk();
   }
 
   currentSession = null;

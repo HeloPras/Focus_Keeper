@@ -65,7 +65,7 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
 
     console.log("Window lost focus — flushing chunk");
 
-    logChunk();
+    await logChunk();
 
     return;
   }
@@ -90,7 +90,7 @@ const IDLE_THRESHOLD_SECONDS = 30;
 
 chrome.idle.setDetectionInterval(IDLE_THRESHOLD_SECONDS);
 
-chrome.idle.onStateChanged.addListener((state) => {
+chrome.idle.onStateChanged.addListener(async (state) => {
   if (state === "active") {
     setUserIdle(false);
 
@@ -100,7 +100,7 @@ chrome.idle.onStateChanged.addListener((state) => {
   } else {
     console.log("User idle — flushing chunk");
 
-    logChunk();
+    await logChunk();
 
     setUserIdle(true);
   }

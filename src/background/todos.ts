@@ -21,7 +21,7 @@ export async function refreshTodoState(): Promise<void> {
 
   // Todos were completed
   if (wasPending && !hasPendingTodos) {
-    logChunk();
+    await logChunk();
   }
 
   // A new pending todo appeared

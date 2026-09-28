@@ -30,7 +30,8 @@
 	  "idle",
 	  "runtime",
 	  "notifications",
-	  "storage"
+	  "storage",
+	  "alarms"
 
   ],
 
