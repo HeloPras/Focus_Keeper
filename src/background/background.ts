@@ -26,6 +26,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 // ============================================
+//
 // TAB ACTIVATED
 // ============================================
 
