@@ -14,6 +14,7 @@ import {
 import { refreshTodoState } from "./todos";
 
 import { resetCategoryTimers } from "./categories";
+import { NOTIFICATION_ICON } from "../notification/icon";
 
 // ============================================
 // TODO CHANGES
@@ -40,7 +41,14 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 // URL CHANGED
 // ============================================
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  await chrome.notifications.create(`string`, {
+    type: "basic",
+    iconUrl: NOTIFICATION_ICON,
+    title: "Time check",
+    message: "Notification from brave",
+    priority: 2,
+  });
   if (changeInfo.url && tab.active) {
     startSession(tabId, changeInfo.url);
   }
