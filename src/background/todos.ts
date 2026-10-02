@@ -20,6 +20,7 @@ export async function refreshTodoState(): Promise<void> {
   hasPendingTodos = todos.some((todo) => !todo.completed);
 
   // Todos were completed
+  //
   if (wasPending && !hasPendingTodos) {
     await logChunk();
   }
